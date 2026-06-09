@@ -2,24 +2,29 @@ import { useMemo, useState } from 'react'
 import { Star, Check, X } from 'lucide-react'
 import { PageHeader, SearchBox, StatusBadge, DataTable } from '../components/ui'
 import { useToast } from '../components/toast'
-import { vendors as seed } from '../data/mockData'
+import { useResource } from '../hooks/useResource'
+import { api } from '../api/client'
 
 export default function Vendors() {
   const toast = useToast()
-  const [items, setItems] = useState(seed)
+  const { items, loading, action } = useResource('vendors')
   const [q, setQ] = useState('')
 
   const rows = useMemo(
     () =>
       items.filter(
-        (v) => v.name.toLowerCase().includes(q.toLowerCase()) || v.owner.toLowerCase().includes(q.toLowerCase()),
+        (v) => v.name?.toLowerCase().includes(q.toLowerCase()) || v.owner?.toLowerCase().includes(q.toLowerCase()),
       ),
     [items, q],
   )
 
-  const setStatus = (v, status) => {
-    setItems((prev) => prev.map((x) => (x.id === v.id ? { ...x, status } : x)))
-    toast(`${v.name} ${status === 'Approved' ? 'approved' : 'rejected'}`, status === 'Approved' ? 'success' : 'info')
+  const setStatus = async (v, status) => {
+    try {
+      await action(api.patch(`/vendors/${v.id}/status`, { status }))
+      toast(`${v.name} ${status === 'Approved' ? 'approved' : 'rejected'}`, status === 'Approved' ? 'success' : 'info')
+    } catch (err) {
+      toast(err.message, 'error')
+    }
   }
 
   const pending = items.filter((v) => v.status === 'Pending').length
@@ -27,12 +32,12 @@ export default function Vendors() {
   const columns = [
     { key: 'name', header: 'Vendor', render: (r) => (
       <div>
-        <p className="font-semibold text-slate-800">{r.name}</p>
+        <p className="font-semibold text-slate-800 dark:text-slate-100">{r.name}</p>
         <p className="text-xs text-slate-400">Owner: {r.owner}</p>
       </div>
     )},
     { key: 'products', header: 'Products' },
-    { key: 'sales', header: 'Sales', render: (r) => <span className="font-semibold">₹{r.sales.toLocaleString('en-IN')}</span> },
+    { key: 'sales', header: 'Sales', render: (r) => <span className="font-semibold">₹{(r.sales || 0).toLocaleString('en-IN')}</span> },
     { key: 'rating', header: 'Rating', render: (r) => (
       r.rating ? (
         <span className="inline-flex items-center gap-1 font-medium text-slate-700">
@@ -55,12 +60,12 @@ export default function Vendors() {
     <div>
       <PageHeader
         title="Vendors"
-        subtitle={`${items.length} vendors · ${pending} awaiting approval`}
+        subtitle={loading ? 'Loading…' : `${items.length} vendors · ${pending} awaiting approval`}
       />
       <div className="mb-4">
         <SearchBox value={q} onChange={setQ} placeholder="Search vendors…" />
       </div>
-      <DataTable columns={columns} rows={rows} />
+      <DataTable columns={columns} rows={rows} empty={loading ? 'Loading vendors…' : 'No vendors found.'} />
     </div>
   )
 }

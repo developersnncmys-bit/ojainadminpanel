@@ -1,12 +1,14 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, Pencil, Trash2, Upload, ImagePlus, X, Package, FileDown } from 'lucide-react'
 import { PageHeader, SearchBox, StatusBadge, DataTable, Modal, ConfirmDialog, Field, Select } from '../components/ui'
 import { useToast } from '../components/toast'
-import { products as seed, categories } from '../data/mockData'
+import { useResource } from '../hooks/useResource'
+import { api } from '../api/client'
 
 const STATUSES = ['Active', 'Low Stock', 'Out of Stock', 'Inactive']
 const VENDORS = ['Satvik Foods', 'Jain Rasoi', 'Amba Pickles', 'Gokul Dairy', 'Pure Satvik Co.']
-const emptyForm = { name: '', category: categories[0].name, price: '', stock: '', vendor: VENDORS[0], status: 'Active', images: [] }
+const DEFAULT_CATS = ['Instant Premix', 'Pickles', 'Beverages', 'Sweets', 'Snacks', 'Spices & Masala']
+const emptyForm = { name: '', category: DEFAULT_CATS[0], price: '', stock: '', vendor: VENDORS[0], status: 'Active', images: [] }
 
 const BULK_COLUMNS = ['name', 'category', 'price', 'stock', 'vendor', 'status']
 const BULK_TEMPLATE =
@@ -14,7 +16,6 @@ const BULK_TEMPLATE =
   'Instant Dosa Premix,Instant Premix,129,200,Satvik Foods,Active\n' +
   'Garlic-Free Schezwan Sauce,Pickles,180,0,Amba Pickles,Out of Stock'
 
-// Minimal CSV parser supporting quoted fields and commas inside quotes.
 function parseCSV(text) {
   const rows = []
   let row = []
@@ -50,28 +51,37 @@ function readFileAsDataURL(file) {
 
 export default function Products() {
   const toast = useToast()
-  const [items, setItems] = useState(seed)
+  const { items, loading, create, update, remove, reload } = useResource('products')
+  const [catOptions, setCatOptions] = useState(DEFAULT_CATS)
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState(null) // null = closed, {} = new, {...} = edit
   const [form, setForm] = useState(emptyForm)
   const [deleting, setDeleting] = useState(null)
+  const [saving, setSaving] = useState(false)
   const [bulkOpen, setBulkOpen] = useState(false)
   const [bulkText, setBulkText] = useState('')
   const imageInput = useRef(null)
   const csvInput = useRef(null)
 
+  // Load category names for the dropdown.
+  useEffect(() => {
+    api.get('/categories?limit=1000')
+      .then((r) => { if (r.data?.length) setCatOptions(r.data.map((c) => c.name)) })
+      .catch(() => {})
+  }, [])
+
   const rows = useMemo(
     () =>
       items.filter(
         (p) =>
-          p.name.toLowerCase().includes(q.toLowerCase()) ||
-          p.category.toLowerCase().includes(q.toLowerCase()) ||
-          p.vendor.toLowerCase().includes(q.toLowerCase()),
+          p.name?.toLowerCase().includes(q.toLowerCase()) ||
+          p.category?.toLowerCase().includes(q.toLowerCase()) ||
+          p.vendor?.toLowerCase().includes(q.toLowerCase()),
       ),
     [items, q],
   )
 
-  const openAdd = () => { setForm(emptyForm); setEditing({}) }
+  const openAdd = () => { setForm({ ...emptyForm, category: catOptions[0] }); setEditing({}) }
   const openEdit = (p) => { setForm({ ...emptyForm, ...p, images: p.images || [] }); setEditing(p) }
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
@@ -87,26 +97,42 @@ export default function Products() {
 
   const removeImage = (idx) => setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== idx) }))
 
-  const save = (e) => {
+  const save = async (e) => {
     e.preventDefault()
     if (!form.name.trim()) return toast('Product name is required', 'error')
-    const price = Number(form.price) || 0
-    const stock = Number(form.stock) || 0
-    const status = stock === 0 ? 'Out of Stock' : form.status
-    if (editing.id) {
-      setItems((prev) => prev.map((p) => (p.id === editing.id ? { ...p, ...form, price, stock, status } : p)))
-      toast(`Updated “${form.name}”`)
-    } else {
-      const id = `P-${1000 + items.length + 1}`
-      setItems((prev) => [{ ...form, id, price, stock, status }, ...prev])
-      toast(`Added “${form.name}”`)
+    const payload = {
+      name: form.name,
+      category: form.category,
+      price: Number(form.price) || 0,
+      stock: Number(form.stock) || 0,
+      vendor: form.vendor,
+      status: form.status,
+      images: form.images,
     }
-    setEditing(null)
+    setSaving(true)
+    try {
+      if (editing.id) {
+        await update(editing.id, payload)
+        toast(`Updated “${form.name}”`)
+      } else {
+        await create(payload)
+        toast(`Added “${form.name}”`)
+      }
+      setEditing(null)
+    } catch (err) {
+      toast(err.message, 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const remove = () => {
-    setItems((prev) => prev.filter((p) => p.id !== deleting.id))
-    toast(`Deleted “${deleting.name}”`, 'info')
+  const confirmDelete = async () => {
+    try {
+      await remove(deleting.id)
+      toast(`Deleted “${deleting.name}”`, 'info')
+    } catch (err) {
+      toast(err.message, 'error')
+    }
   }
 
   // ---- Bulk import --------------------------------------------------------
@@ -127,7 +153,7 @@ export default function Products() {
       const stock = Number(rec.stock) || 0
       products.push({
         name: rec.name,
-        category: rec.category || categories[0].name,
+        category: rec.category || catOptions[0],
         price: Number(rec.price) || 0,
         stock,
         vendor: rec.vendor || VENDORS[0],
@@ -136,7 +162,7 @@ export default function Products() {
       })
     })
     return { products, errors }
-  }, [bulkText])
+  }, [bulkText, catOptions])
 
   const loadCSVFile = async (e) => {
     const file = e.target.files?.[0]
@@ -157,17 +183,18 @@ export default function Products() {
     URL.revokeObjectURL(url)
   }
 
-  const importBulk = () => {
+  const importBulk = async () => {
     const { products } = parsedBulk
     if (!products.length) return toast('Nothing to import — check your CSV', 'error')
-    setItems((prev) => {
-      let n = prev.length
-      const withIds = products.map((p) => ({ ...p, id: `P-${1000 + ++n}` }))
-      return [...withIds, ...prev]
-    })
-    toast(`Imported ${products.length} product${products.length > 1 ? 's' : ''}`)
-    setBulkOpen(false)
-    setBulkText('')
+    try {
+      const res = await api.post('/products/bulk', { products })
+      toast(`Imported ${res.count} product${res.count > 1 ? 's' : ''}`)
+      setBulkOpen(false)
+      setBulkText('')
+      reload()
+    } catch (err) {
+      toast(err.message, 'error')
+    }
   }
 
   const columns = [
@@ -175,8 +202,8 @@ export default function Products() {
       <div className="flex items-center gap-3">
         <Thumb src={r.images?.[0]} />
         <div>
-          <p className="font-semibold text-slate-800">{r.name}</p>
-          <p className="text-xs text-slate-400">{r.id}{r.images?.length > 1 ? ` · ${r.images.length} images` : ''}</p>
+          <p className="font-semibold text-slate-800 dark:text-slate-100">{r.name}</p>
+          <p className="text-xs text-slate-400">{r.code || `#${r.id?.slice(-6)}`}{r.images?.length > 1 ? ` · ${r.images.length} images` : ''}</p>
         </div>
       </div>
     )},
@@ -201,7 +228,7 @@ export default function Products() {
     <div>
       <PageHeader
         title="Products"
-        subtitle={`${items.length} products across all categories`}
+        subtitle={loading ? 'Loading…' : `${items.length} products across all categories`}
         action={
           <div className="flex gap-2">
             <button onClick={() => { setBulkText(''); setBulkOpen(true) }} className="btn-ghost"><Upload className="h-4 w-4" /> Bulk Import</button>
@@ -212,7 +239,7 @@ export default function Products() {
       <div className="mb-4">
         <SearchBox value={q} onChange={setQ} placeholder="Search products, vendors…" />
       </div>
-      <DataTable columns={columns} rows={rows} />
+      <DataTable columns={columns} rows={rows} empty={loading ? 'Loading products…' : 'No products found.'} />
 
       {/* Add / Edit product */}
       <Modal
@@ -222,7 +249,9 @@ export default function Products() {
         footer={
           <>
             <button className="btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
-            <button className="btn-primary" onClick={save}>{editing?.id ? 'Save Changes' : 'Add Product'}</button>
+            <button className="btn-primary disabled:opacity-60" onClick={save} disabled={saving}>
+              {saving ? 'Saving…' : editing?.id ? 'Save Changes' : 'Add Product'}
+            </button>
           </>
         }
       >
@@ -231,7 +260,7 @@ export default function Products() {
 
           {/* Images */}
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Product Images</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Product Images</label>
             <div className="flex flex-wrap gap-3">
               {form.images.map((src, i) => (
                 <div key={i} className="group relative h-20 w-20 overflow-hidden rounded-lg border border-slate-200">
@@ -248,7 +277,7 @@ export default function Products() {
               <button
                 type="button"
                 onClick={() => imageInput.current?.click()}
-                className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-slate-300 text-slate-400 hover:border-brand-400 hover:text-brand-600"
+                className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-slate-300 text-slate-400 hover:border-brand-400 hover:text-brand-600 dark:border-slate-600 dark:hover:border-brand-500"
               >
                 <ImagePlus className="h-5 w-5" />
                 <span className="text-[10px] font-medium">Add</span>
@@ -259,7 +288,7 @@ export default function Products() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Select label="Category" options={categories.map((c) => c.name)} value={form.category} onChange={set('category')} />
+            <Select label="Category" options={catOptions} value={form.category} onChange={set('category')} />
             <Select label="Vendor" options={VENDORS} value={form.vendor} onChange={set('vendor')} />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -293,7 +322,7 @@ export default function Products() {
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Paste CSV data</label>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">Paste CSV data</label>
             <textarea
               className="input h-40 resize-none font-mono text-xs"
               placeholder={BULK_TEMPLATE}
@@ -301,7 +330,7 @@ export default function Products() {
               onChange={(e) => setBulkText(e.target.value)}
             />
             <p className="mt-1.5 text-xs text-slate-400">
-              Columns: <code className="rounded bg-slate-100 px-1">{BULK_COLUMNS.join(', ')}</code>. A header row is optional.
+              Columns: <code className="rounded bg-slate-100 px-1 dark:bg-slate-800 dark:text-slate-300">{BULK_COLUMNS.join(', ')}</code>. A header row is optional.
             </p>
           </div>
 
@@ -313,14 +342,14 @@ export default function Products() {
           )}
 
           {parsedBulk.products.length > 0 && (
-            <div className="overflow-hidden rounded-lg border border-slate-200">
-              <div className="bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">
+            <div className="overflow-hidden rounded-lg border border-slate-200 dark:border-slate-800">
+              <div className="bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                 Preview — {parsedBulk.products.length} product{parsedBulk.products.length > 1 ? 's' : ''} ready
               </div>
-              <div className="max-h-44 overflow-y-auto divide-y divide-slate-100">
+              <div className="max-h-44 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                 {parsedBulk.products.slice(0, 20).map((p, i) => (
                   <div key={i} className="flex items-center justify-between px-3 py-2 text-sm">
-                    <span className="font-medium text-slate-700">{p.name}</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-200">{p.name}</span>
                     <span className="text-xs text-slate-400">{p.category} · ₹{p.price} · {p.stock} in stock</span>
                   </div>
                 ))}
@@ -336,7 +365,7 @@ export default function Products() {
       <ConfirmDialog
         open={deleting !== null}
         onClose={() => setDeleting(null)}
-        onConfirm={remove}
+        onConfirm={confirmDelete}
         title="Delete product"
         message={`This will permanently remove “${deleting?.name}” from the catalogue.`}
       />
@@ -347,7 +376,7 @@ export default function Products() {
 function Thumb({ src }) {
   if (src) return <img src={src} alt="" className="h-10 w-10 shrink-0 rounded-lg border border-slate-200 object-cover" />
   return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-300">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-500">
       <Package className="h-4 w-4" />
     </div>
   )

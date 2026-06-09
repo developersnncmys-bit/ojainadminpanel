@@ -1,6 +1,9 @@
 node_modules
 dist
 dist-ssr
+
+# Backend lives in its own repo (ojainbackend)
+server
 *.local
 .vscode/*
 !.vscode/extensions.json

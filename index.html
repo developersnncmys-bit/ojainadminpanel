@@ -8,6 +8,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <title>OJAIN · Admin Panel</title>
+    <script>
+      // Apply saved/system theme before paint to avoid a flash of light mode.
+      (function () {
+        try {
+          var t = localStorage.getItem('ojain.theme')
+          var sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          var dark = t === 'dark' || ((!t || t === 'system') && sysDark)
+          if (dark) document.documentElement.classList.add('dark')
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -39,7 +39,7 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-white dark:bg-slate-900">
       {/* Left — brand panel */}
       <div className="relative hidden w-1/2 overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-brand-800 lg:flex lg:flex-col lg:justify-between lg:p-12">
         {/* decorative blobs */}
@@ -95,11 +95,11 @@ export default function Login() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600">
               <Leaf className="h-5 w-5 text-white" />
             </div>
-            <p className="text-lg font-extrabold text-slate-900">OJAIN</p>
+            <p className="text-lg font-extrabold text-slate-900 dark:text-white">OJAIN</p>
           </div>
 
-          <h1 className="text-2xl font-extrabold text-slate-900">Welcome back 👋</h1>
-          <p className="mt-1 text-sm text-slate-500">Sign in to your admin account to continue.</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">Welcome back 👋</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Sign in to your admin account to continue.</p>
 
           <form onSubmit={submit} className="mt-8 space-y-5">
             {error && (
@@ -109,7 +109,7 @@ export default function Login() {
             )}
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Email address</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Email address</label>
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
@@ -125,7 +125,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-slate-700">Password</label>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
               <div className="relative">
                 <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
@@ -147,7 +147,7 @@ export default function Login() {
             </div>
 
             <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-slate-600">
+              <label className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
                 <input
                   type="checkbox"
                   checked={remember}
@@ -171,9 +171,9 @@ export default function Login() {
               {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
             </button>
 
-            <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-4 py-2.5 text-xs text-slate-500">
+            <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-4 py-2.5 text-xs text-slate-500 dark:bg-slate-800 dark:text-slate-400">
               <Sparkles className="h-3.5 w-3.5 text-brand-500" />
-              Demo — <span className="font-semibold text-slate-700">admin@ojain.in</span> / <span className="font-semibold text-slate-700">admin123</span>
+              Demo — <span className="font-semibold text-slate-700 dark:text-slate-200">admin@ojain.in</span> / <span className="font-semibold text-slate-700 dark:text-slate-200">admin123</span>
             </div>
           </form>
         </div>

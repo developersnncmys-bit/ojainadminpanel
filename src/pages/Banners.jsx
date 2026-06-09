@@ -2,38 +2,53 @@ import { useState } from 'react'
 import { Plus, Image as ImageIcon, MousePointerClick, Trash2 } from 'lucide-react'
 import { PageHeader, Modal, ConfirmDialog, Field, Select, Pagination, usePagination } from '../components/ui'
 import { useToast } from '../components/toast'
-import { banners as seed } from '../data/mockData'
+import { useResource } from '../hooks/useResource'
+import { api } from '../api/client'
 
 const PLACEMENTS = ['Home Hero', 'Category Top', 'Sidebar', 'Checkout']
 const emptyForm = { title: '', placement: PLACEMENTS[0], active: true }
 
 export default function Banners() {
   const toast = useToast()
-  const [items, setItems] = useState(seed)
+  const { items, loading, create, remove, action } = useResource('banners')
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [deleting, setDeleting] = useState(null)
+  const [saving, setSaving] = useState(false)
 
-  const toggle = (id) =>
-    setItems((prev) => prev.map((b) => (b.id === id ? { ...b, active: !b.active } : b)))
+  const toggle = async (b) => {
+    try {
+      await action(api.patch(`/banners/${b.id}/toggle`))
+    } catch (err) {
+      toast(err.message, 'error')
+    }
+  }
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  const save = (e) => {
+  const save = async (e) => {
     e.preventDefault()
     if (!form.title.trim()) return toast('Banner title is required', 'error')
-    setItems((prev) => [
-      ...prev,
-      { id: `B-${prev.length + 1}`, title: form.title, placement: form.placement, active: form.active, clicks: 0 },
-    ])
-    toast(`Created banner “${form.title}”`)
-    setCreating(false)
-    setForm(emptyForm)
+    setSaving(true)
+    try {
+      await create({ title: form.title, placement: form.placement, active: form.active, clicks: 0 })
+      toast(`Created banner “${form.title}”`)
+      setCreating(false)
+      setForm(emptyForm)
+    } catch (err) {
+      toast(err.message, 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const remove = () => {
-    setItems((prev) => prev.filter((b) => b.id !== deleting.id))
-    toast(`Deleted “${deleting.title}”`, 'info')
+  const confirmDelete = async () => {
+    try {
+      await remove(deleting.id)
+      toast(`Deleted “${deleting.title}”`, 'info')
+    } catch (err) {
+      toast(err.message, 'error')
+    }
   }
 
   const { page, setPage, totalPages, pageItems, start, end, total } = usePagination(items, 6)
@@ -45,6 +60,9 @@ export default function Banners() {
         subtitle="Manage promotional banners shown across the storefront"
         action={<button onClick={() => { setForm(emptyForm); setCreating(true) }} className="btn-primary"><Plus className="h-4 w-4" /> New Banner</button>}
       />
+      {total === 0 && (
+        <div className="card p-10 text-center text-slate-400">{loading ? 'Loading banners…' : 'No banners yet.'}</div>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {pageItems.map((b) => (
           <div key={b.id} className="card overflow-hidden">
@@ -61,11 +79,11 @@ export default function Banners() {
             <div className="p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="font-semibold text-slate-800">{b.title}</p>
+                  <p className="font-semibold text-slate-800 dark:text-slate-100">{b.title}</p>
                   <p className="text-xs text-slate-400">{b.placement}</p>
                 </div>
                 <button
-                  onClick={() => toggle(b.id)}
+                  onClick={() => toggle(b)}
                   className={`relative h-6 w-11 rounded-full transition-colors ${b.active ? 'bg-brand-500' : 'bg-slate-300'}`}
                 >
                   <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${b.active ? 'left-[22px]' : 'left-0.5'}`} />
@@ -73,7 +91,7 @@ export default function Banners() {
               </div>
               <div className="mt-3 flex items-center gap-1.5 text-sm text-slate-500">
                 <MousePointerClick className="h-4 w-4" />
-                {b.clicks.toLocaleString('en-IN')} clicks
+                {(b.clicks || 0).toLocaleString('en-IN')} clicks
               </div>
             </div>
           </div>
@@ -93,7 +111,7 @@ export default function Banners() {
         footer={
           <>
             <button className="btn-ghost" onClick={() => setCreating(false)}>Cancel</button>
-            <button className="btn-primary" onClick={save}>Create Banner</button>
+            <button className="btn-primary disabled:opacity-60" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Create Banner'}</button>
           </>
         }
       >
@@ -115,7 +133,7 @@ export default function Banners() {
       <ConfirmDialog
         open={deleting !== null}
         onClose={() => setDeleting(null)}
-        onConfirm={remove}
+        onConfirm={confirmDelete}
         title="Delete banner"
         message={`Remove “${deleting?.title}” from the storefront?`}
       />

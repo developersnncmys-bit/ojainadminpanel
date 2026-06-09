@@ -42,8 +42,8 @@ function StatCard({ s }) {
           {s.delta}
         </span>
       </div>
-      <p className="relative mt-4 text-sm text-slate-500">{s.label}</p>
-      <p className="relative mt-0.5 text-2xl font-extrabold text-slate-900">{s.value}</p>
+      <p className="relative mt-4 text-sm text-slate-500 dark:text-slate-400">{s.label}</p>
+      <p className="relative mt-0.5 text-2xl font-extrabold text-slate-900 dark:text-white">{s.value}</p>
     </div>
   )
 }
@@ -89,7 +89,7 @@ export default function Dashboard() {
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="card p-5 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800">Revenue Overview</h3>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100">Revenue Overview</h3>
             <span className="badge bg-brand-100 text-brand-700">2026</span>
           </div>
           <ResponsiveContainer width="100%" height={280}>
@@ -124,11 +124,11 @@ export default function Dashboard() {
           <div className="mt-2 space-y-2">
             {categorySplit.map((c, i) => (
               <div key={c.name} className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-slate-600">
+                <span className="flex items-center gap-2 text-slate-600 dark:text-slate-300">
                   <span className="h-2.5 w-2.5 rounded-full" style={{ background: PIE_COLORS[i] }} />
                   {c.name}
                 </span>
-                <span className="font-semibold text-slate-700">{c.value}%</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-200">{c.value}%</span>
               </div>
             ))}
           </div>
@@ -139,7 +139,7 @@ export default function Dashboard() {
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="card p-5 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800">Recent Orders</h3>
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100">Recent Orders</h3>
             <button onClick={() => navigate('/orders')} className="inline-flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700">
               View all <ArrowUpRight className="h-4 w-4" />
             </button>
@@ -154,12 +154,12 @@ export default function Dashboard() {
                   <th className="pb-2 font-semibold">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {orders.slice(0, 6).map((o) => (
                   <tr key={o.id} className="transition-colors hover:bg-slate-50">
-                    <td className="py-2.5 font-medium text-slate-700">{o.id}</td>
-                    <td className="py-2.5 text-slate-600">{o.customer}</td>
-                    <td className="py-2.5 font-semibold text-slate-700">₹{o.total}</td>
+                    <td className="py-2.5 font-medium text-slate-700 dark:text-slate-200">{o.id}</td>
+                    <td className="py-2.5 text-slate-600 dark:text-slate-400">{o.customer}</td>
+                    <td className="py-2.5 font-semibold text-slate-700 dark:text-slate-200">₹{o.total}</td>
                     <td className="py-2.5"><StatusBadge value={o.status} /></td>
                   </tr>
                 ))}

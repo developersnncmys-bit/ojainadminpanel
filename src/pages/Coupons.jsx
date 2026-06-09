@@ -2,21 +2,22 @@ import { useMemo, useState } from 'react'
 import { Plus, Copy, Trash2 } from 'lucide-react'
 import { PageHeader, SearchBox, StatusBadge, DataTable, Modal, ConfirmDialog, Field, Select } from '../components/ui'
 import { useToast } from '../components/toast'
-import { coupons as seed } from '../data/mockData'
+import { useResource } from '../hooks/useResource'
 
 const TYPES = ['Percent', 'Flat', 'Shipping']
 const emptyForm = { code: '', type: 'Percent', value: '', minOrder: '', expiry: '' }
 
 export default function Coupons() {
   const toast = useToast()
-  const [items, setItems] = useState(seed)
+  const { items, loading, create, remove } = useResource('coupons')
   const [q, setQ] = useState('')
   const [creating, setCreating] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [deleting, setDeleting] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   const rows = useMemo(
-    () => items.filter((c) => c.code.toLowerCase().includes(q.toLowerCase())),
+    () => items.filter((c) => c.code?.toLowerCase().includes(q.toLowerCase())),
     [items, q],
   )
 
@@ -31,7 +32,7 @@ export default function Coupons() {
     }
   }
 
-  const save = (e) => {
+  const save = async (e) => {
     e.preventDefault()
     const code = form.code.trim().toUpperCase()
     if (!code) return toast('Coupon code is required', 'error')
@@ -40,18 +41,26 @@ export default function Coupons() {
       form.type === 'Percent' ? `${form.value || 0}%` : form.type === 'Flat' ? `₹${form.value || 0}` : 'Free'
     const expiry = form.expiry || '2026-12-31'
     const status = new Date(expiry) < new Date('2026-06-09') ? 'Expired' : 'Active'
-    setItems((prev) => [
-      { id: `CPN-${prev.length + 1}`, code, type: form.type, value, minOrder: Number(form.minOrder) || 0, uses: 0, expiry, status },
-      ...prev,
-    ])
-    toast(`Created coupon “${code}”`)
-    setCreating(false)
-    setForm(emptyForm)
+    setSaving(true)
+    try {
+      await create({ code, type: form.type, value, minOrder: Number(form.minOrder) || 0, uses: 0, expiry, status })
+      toast(`Created coupon “${code}”`)
+      setCreating(false)
+      setForm(emptyForm)
+    } catch (err) {
+      toast(err.message, 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const remove = () => {
-    setItems((prev) => prev.filter((c) => c.id !== deleting.id))
-    toast(`Deleted “${deleting.code}”`, 'info')
+  const confirmDelete = async () => {
+    try {
+      await remove(deleting.id)
+      toast(`Deleted “${deleting.code}”`, 'info')
+    } catch (err) {
+      toast(err.message, 'error')
+    }
   }
 
   const columns = [
@@ -64,7 +73,7 @@ export default function Coupons() {
     { key: 'type', header: 'Type' },
     { key: 'value', header: 'Discount', render: (r) => <span className="font-semibold">{r.value}</span> },
     { key: 'minOrder', header: 'Min Order', render: (r) => `₹${r.minOrder}` },
-    { key: 'uses', header: 'Used', render: (r) => r.uses.toLocaleString('en-IN') },
+    { key: 'uses', header: 'Used', render: (r) => (r.uses || 0).toLocaleString('en-IN') },
     { key: 'expiry', header: 'Expiry' },
     { key: 'status', header: 'Status', render: (r) => <StatusBadge value={r.status} /> },
     { key: 'actions', header: '', render: (r) => (
@@ -82,7 +91,7 @@ export default function Coupons() {
       <div className="mb-4">
         <SearchBox value={q} onChange={setQ} placeholder="Search coupon code…" />
       </div>
-      <DataTable columns={columns} rows={rows} />
+      <DataTable columns={columns} rows={rows} empty={loading ? 'Loading coupons…' : 'No coupons found.'} />
 
       <Modal
         open={creating}
@@ -91,7 +100,7 @@ export default function Coupons() {
         footer={
           <>
             <button className="btn-ghost" onClick={() => setCreating(false)}>Cancel</button>
-            <button className="btn-primary" onClick={save}>Create Coupon</button>
+            <button className="btn-primary disabled:opacity-60" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Create Coupon'}</button>
           </>
         }
       >
@@ -119,7 +128,7 @@ export default function Coupons() {
       <ConfirmDialog
         open={deleting !== null}
         onClose={() => setDeleting(null)}
-        onConfirm={remove}
+        onConfirm={confirmDelete}
         title="Delete coupon"
         message={`Customers will no longer be able to use “${deleting?.code}”.`}
       />

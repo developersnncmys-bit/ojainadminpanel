@@ -55,15 +55,15 @@ export default function Reports() {
           { label: 'Repeat Customers', value: '42%' },
         ].map((k) => (
           <div key={k.label} className="card p-5">
-            <p className="text-sm text-slate-500">{k.label}</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{k.value}</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">{k.label}</p>
+            <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{k.value}</p>
           </div>
         ))}
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="card p-5">
-          <h3 className="mb-4 font-semibold text-slate-800">Monthly Orders</h3>
+          <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">Monthly Orders</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={salesData} margin={{ left: -10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" />
@@ -76,7 +76,7 @@ export default function Reports() {
         </div>
 
         <div className="card p-5">
-          <h3 className="mb-4 font-semibold text-slate-800">Revenue Trend</h3>
+          <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">Revenue Trend</h3>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={salesData} margin={{ left: -10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eef2f6" />
@@ -90,7 +90,7 @@ export default function Reports() {
       </div>
 
       <div className="mt-4 card p-5">
-        <h3 className="mb-4 font-semibold text-slate-800">Top Performing Products</h3>
+        <h3 className="mb-4 font-semibold text-slate-800 dark:text-slate-100">Top Performing Products</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="text-xs uppercase text-slate-400">
@@ -100,12 +100,12 @@ export default function Reports() {
                 <th className="pb-2 font-semibold">Revenue</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {topProducts.map((p) => (
                 <tr key={p.name}>
-                  <td className="py-2.5 font-medium text-slate-700">{p.name}</td>
-                  <td className="py-2.5 text-slate-600">{p.sold.toLocaleString('en-IN')}</td>
-                  <td className="py-2.5 font-semibold text-slate-700">₹{p.revenue.toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 font-medium text-slate-700 dark:text-slate-200">{p.name}</td>
+                  <td className="py-2.5 text-slate-600 dark:text-slate-400">{p.sold.toLocaleString('en-IN')}</td>
+                  <td className="py-2.5 font-semibold text-slate-700 dark:text-slate-200">₹{p.revenue.toLocaleString('en-IN')}</td>
                 </tr>
               ))}
             </tbody>

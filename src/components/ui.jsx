@@ -6,8 +6,8 @@ export function PageHeader({ title, subtitle, action }) {
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>}
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white">{title}</h1>
+        {subtitle && <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>}
       </div>
       {action}
     </div>
@@ -40,7 +40,7 @@ export function StatusBadge({ value }) {
 export function SearchBox({ value, onChange, placeholder = 'Search…' }) {
   return (
     <div className="relative w-full sm:w-72">
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
       <input
         className="input pl-9"
         value={value}
@@ -60,7 +60,7 @@ export function DataTable({ columns, rows, empty = 'No records found.', pageSize
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
               {columns.map((c) => (
                 <th key={c.key} className="whitespace-nowrap px-4 py-3 font-semibold">
                   {c.header}
@@ -68,18 +68,18 @@ export function DataTable({ columns, rows, empty = 'No records found.', pageSize
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {rows.length === 0 && (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-10 text-center text-slate-400">
+                <td colSpan={columns.length} className="px-4 py-10 text-center text-slate-400 dark:text-slate-500">
                   {empty}
                 </td>
               </tr>
             )}
             {pageItems.map((row, i) => (
-              <tr key={row.id || i} className="transition-colors hover:bg-slate-50">
+              <tr key={row.id || i} className="transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50">
                 {columns.map((c) => (
-                  <td key={c.key} className="whitespace-nowrap px-4 py-3 text-slate-700">
+                  <td key={c.key} className="whitespace-nowrap px-4 py-3 text-slate-700 dark:text-slate-300">
                     {c.render ? c.render(row) : row[c.key]}
                   </td>
                 ))}
@@ -125,17 +125,17 @@ function pageNumbers(page, totalPages) {
 
 export function Pagination({ page, totalPages, onChange, start, end, total }) {
   return (
-    <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 sm:flex-row">
-      <p className="text-xs text-slate-500">
-        Showing <span className="font-semibold text-slate-700">{start}</span>–
-        <span className="font-semibold text-slate-700">{end}</span> of{' '}
-        <span className="font-semibold text-slate-700">{total}</span>
+    <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 px-4 py-3 dark:border-slate-800 sm:flex-row">
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        Showing <span className="font-semibold text-slate-700 dark:text-slate-200">{start}</span>–
+        <span className="font-semibold text-slate-700 dark:text-slate-200">{end}</span> of{' '}
+        <span className="font-semibold text-slate-700 dark:text-slate-200">{total}</span>
       </p>
       <div className="flex items-center gap-1">
         <button
           onClick={() => onChange(page - 1)}
           disabled={page === 1}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -147,7 +147,7 @@ export function Pagination({ page, totalPages, onChange, start, end, total }) {
               key={n}
               onClick={() => onChange(n)}
               className={`h-8 min-w-8 rounded-lg px-2 text-sm font-medium transition-colors ${
-                n === page ? 'bg-brand-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                n === page ? 'bg-brand-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800'
               }`}
             >
               {n}
@@ -157,7 +157,7 @@ export function Pagination({ page, totalPages, onChange, start, end, total }) {
         <button
           onClick={() => onChange(page + 1)}
           disabled={page === totalPages}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -182,14 +182,14 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }) {
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={onClose} />
       <div className={`card relative z-10 w-full ${widths[size]} max-h-[90vh] overflow-y-auto`}>
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-base font-bold text-slate-900">{title}</h2>
-          <button onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">{title}</h2>
+          <button onClick={onClose} className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200">
             <X className="h-5 w-5" />
           </button>
         </div>
         <div className="px-5 py-4">{children}</div>
-        {footer && <div className="flex justify-end gap-3 border-t border-slate-200 px-5 py-4">{footer}</div>}
+        {footer && <div className="flex justify-end gap-3 border-t border-slate-200 px-5 py-4 dark:border-slate-800">{footer}</div>}
       </div>
     </div>
   )
@@ -216,10 +216,10 @@ export function ConfirmDialog({ open, onClose, onConfirm, title = 'Are you sure?
       }
     >
       <div className="flex gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400">
           <AlertTriangle className="h-5 w-5" />
         </div>
-        <p className="text-sm text-slate-600">{message}</p>
+        <p className="text-sm text-slate-600 dark:text-slate-300">{message}</p>
       </div>
     </Modal>
   )
@@ -229,7 +229,7 @@ export function ConfirmDialog({ open, onClose, onConfirm, title = 'Are you sure?
 export function Field({ label, ...props }) {
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
+      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
       <input className="input" {...props} />
     </div>
   )
@@ -238,7 +238,7 @@ export function Field({ label, ...props }) {
 export function Select({ label, options, ...props }) {
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-slate-700">{label}</label>
+      <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{label}</label>
       <select className="input" {...props}>
         {options.map((o) => (
           <option key={o} value={o}>{o}</option>

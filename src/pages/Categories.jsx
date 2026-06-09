@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { PageHeader, SearchBox, StatusBadge, DataTable, Modal, ConfirmDialog, Field, Select } from '../components/ui'
 import { useToast } from '../components/toast'
-import { categories as seed } from '../data/mockData'
+import { useResource } from '../hooks/useResource'
 
 const slugify = (s) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
@@ -10,14 +10,15 @@ const emptyForm = { name: '', slug: '', status: 'Active' }
 
 export default function Categories() {
   const toast = useToast()
-  const [items, setItems] = useState(seed)
+  const { items, loading, create, update, remove } = useResource('categories')
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [deleting, setDeleting] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   const rows = useMemo(
-    () => items.filter((c) => c.name.toLowerCase().includes(q.toLowerCase())),
+    () => items.filter((c) => c.name?.toLowerCase().includes(q.toLowerCase())),
     [items, q],
   )
 
@@ -25,30 +26,40 @@ export default function Categories() {
   const openEdit = (c) => { setForm({ ...c }); setEditing(c) }
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  const save = (e) => {
+  const save = async (e) => {
     e.preventDefault()
     if (!form.name.trim()) return toast('Category name is required', 'error')
-    const slug = form.slug.trim() || slugify(form.name)
-    if (editing.id) {
-      setItems((prev) => prev.map((c) => (c.id === editing.id ? { ...c, ...form, slug } : c)))
-      toast(`Updated “${form.name}”`)
-    } else {
-      const id = `CAT-${String(items.length + 1).padStart(2, '0')}`
-      setItems((prev) => [...prev, { id, name: form.name, slug, products: 0, status: form.status }])
-      toast(`Added category “${form.name}”`)
+    const payload = { name: form.name, slug: form.slug.trim() || slugify(form.name), status: form.status }
+    setSaving(true)
+    try {
+      if (editing.id) {
+        await update(editing.id, payload)
+        toast(`Updated “${form.name}”`)
+      } else {
+        await create(payload)
+        toast(`Added category “${form.name}”`)
+      }
+      setEditing(null)
+    } catch (err) {
+      toast(err.message, 'error')
+    } finally {
+      setSaving(false)
     }
-    setEditing(null)
   }
 
-  const remove = () => {
-    setItems((prev) => prev.filter((c) => c.id !== deleting.id))
-    toast(`Deleted “${deleting.name}”`, 'info')
+  const confirmDelete = async () => {
+    try {
+      await remove(deleting.id)
+      toast(`Deleted “${deleting.name}”`, 'info')
+    } catch (err) {
+      toast(err.message, 'error')
+    }
   }
 
   const columns = [
-    { key: 'name', header: 'Category', render: (r) => <span className="font-semibold text-slate-800">{r.name}</span> },
-    { key: 'slug', header: 'Slug', render: (r) => <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">{r.slug}</code> },
-    { key: 'products', header: 'Products', render: (r) => `${r.products} items` },
+    { key: 'name', header: 'Category', render: (r) => <span className="font-semibold text-slate-800 dark:text-slate-100">{r.name}</span> },
+    { key: 'slug', header: 'Slug', render: (r) => <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800 dark:text-slate-300">{r.slug}</code> },
+    { key: 'products', header: 'Products', render: (r) => `${r.products || 0} items` },
     { key: 'status', header: 'Status', render: (r) => <StatusBadge value={r.status} /> },
     { key: 'actions', header: '', render: (r) => (
       <div className="flex gap-1">
@@ -68,7 +79,7 @@ export default function Categories() {
       <div className="mb-4">
         <SearchBox value={q} onChange={setQ} placeholder="Search categories…" />
       </div>
-      <DataTable columns={columns} rows={rows} />
+      <DataTable columns={columns} rows={rows} empty={loading ? 'Loading categories…' : 'No categories found.'} />
 
       <Modal
         open={editing !== null}
@@ -77,7 +88,9 @@ export default function Categories() {
         footer={
           <>
             <button className="btn-ghost" onClick={() => setEditing(null)}>Cancel</button>
-            <button className="btn-primary" onClick={save}>{editing?.id ? 'Save Changes' : 'Add Category'}</button>
+            <button className="btn-primary disabled:opacity-60" onClick={save} disabled={saving}>
+              {saving ? 'Saving…' : editing?.id ? 'Save Changes' : 'Add Category'}
+            </button>
           </>
         }
       >
@@ -91,7 +104,7 @@ export default function Categories() {
       <ConfirmDialog
         open={deleting !== null}
         onClose={() => setDeleting(null)}
-        onConfirm={remove}
+        onConfirm={confirmDelete}
         title="Delete category"
         message={`Remove “${deleting?.name}”? Products in this category will need re-assigning.`}
       />

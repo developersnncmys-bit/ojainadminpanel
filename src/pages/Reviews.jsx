@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Star, Check, Trash2 } from 'lucide-react'
 import { PageHeader, StatusBadge, ConfirmDialog, Pagination, usePagination } from '../components/ui'
 import { useToast } from '../components/toast'
-import { reviews as seed } from '../data/mockData'
+import { useResource } from '../hooks/useResource'
+import { api } from '../api/client'
 
 function Stars({ n }) {
   return (
@@ -16,17 +17,25 @@ function Stars({ n }) {
 
 export default function Reviews() {
   const toast = useToast()
-  const [items, setItems] = useState(seed)
+  const { items, loading, remove, action } = useResource('reviews')
   const [deleting, setDeleting] = useState(null)
 
-  const approve = (r) => {
-    setItems((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: 'Published' } : x)))
-    toast(`Approved review by ${r.customer}`)
+  const approve = async (r) => {
+    try {
+      await action(api.patch(`/reviews/${r.id}/approve`))
+      toast(`Approved review by ${r.customer}`)
+    } catch (err) {
+      toast(err.message, 'error')
+    }
   }
 
-  const remove = () => {
-    setItems((prev) => prev.filter((x) => x.id !== deleting.id))
-    toast(`Deleted review by ${deleting.customer}`, 'info')
+  const confirmDelete = async () => {
+    try {
+      await remove(deleting.id)
+      toast(`Deleted review by ${deleting.customer}`, 'info')
+    } catch (err) {
+      toast(err.message, 'error')
+    }
   }
 
   const pending = items.filter((r) => r.status === 'Pending').length
@@ -36,14 +45,17 @@ export default function Reviews() {
     <div>
       <PageHeader
         title="Reviews"
-        subtitle={`${items.length} reviews · ${pending} pending moderation`}
+        subtitle={loading ? 'Loading…' : `${items.length} reviews · ${pending} pending moderation`}
       />
+      {total === 0 && (
+        <div className="card p-10 text-center text-slate-400">{loading ? 'Loading reviews…' : 'No reviews yet.'}</div>
+      )}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {pageItems.map((r) => (
           <div key={r.id} className="card p-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="font-semibold text-slate-800">{r.customer}</p>
+                <p className="font-semibold text-slate-800 dark:text-slate-100">{r.customer}</p>
                 <p className="text-xs text-slate-400">{r.product}</p>
               </div>
               <StatusBadge value={r.status} />
@@ -52,7 +64,7 @@ export default function Reviews() {
               <Stars n={r.rating} />
               <span className="text-xs text-slate-400">{r.date}</span>
             </div>
-            <p className="mt-3 text-sm text-slate-600">“{r.comment}”</p>
+            <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">“{r.comment}”</p>
             <div className="mt-4 flex gap-2">
               {r.status === 'Pending' && (
                 <button onClick={() => approve(r)} className="btn-primary px-3 py-1.5 text-xs"><Check className="h-3.5 w-3.5" /> Approve</button>
@@ -72,7 +84,7 @@ export default function Reviews() {
       <ConfirmDialog
         open={deleting !== null}
         onClose={() => setDeleting(null)}
-        onConfirm={remove}
+        onConfirm={confirmDelete}
         title="Delete review"
         message={`Permanently remove the review by ${deleting?.customer}?`}
       />
