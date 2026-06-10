@@ -1,7 +1,7 @@
 // Thin fetch wrapper for the OJAIN API: injects the JWT, parses JSON,
 // and throws Error(message) on non-2xx so callers can show toasts.
 
-const BASE = import.meta.env.VITE_API_URL || 'https://ojainbackend.vercel.app/api'
+const BASE = import.meta.env.VITE_API_URL || 'https://ojainbackend.onrender.com/api'
 const TOKEN_KEY = 'ojain.token'
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY)
