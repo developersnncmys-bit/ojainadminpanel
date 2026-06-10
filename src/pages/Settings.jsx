@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PageHeader } from '../components/ui'
 import { useToast } from '../components/toast'
+import { useAuth } from '../components/auth'
 
 const TABS = ['Store', 'Profile', 'Notifications', 'Payments']
 
-const INITIAL = {
+const BASE = {
   storeName: 'OJAIN — Pure Jain & Satvik',
   supportEmail: 'support@ojain.in',
   contact: '+91 98765 43210',
@@ -22,11 +23,27 @@ const INITIAL = {
   gst: '24ABCDE1234F1Z5',
 }
 
+// Merge the logged-in admin's real profile over the defaults.
+const buildInitial = (user) => ({
+  ...BASE,
+  fullName: user?.name || BASE.fullName,
+  email: user?.email || BASE.email,
+  supportEmail: user?.email || BASE.supportEmail,
+})
+
 export default function Settings() {
   const toast = useToast()
+  const { user } = useAuth()
   const [tab, setTab] = useState('Store')
-  const [form, setForm] = useState(INITIAL)
-  const [saved, setSaved] = useState(INITIAL)
+  const [form, setForm] = useState(() => buildInitial(user))
+  const [saved, setSaved] = useState(() => buildInitial(user))
+
+  // Sync once the authenticated user resolves (e.g. after /auth/me on boot).
+  useEffect(() => {
+    const next = buildInitial(user)
+    setForm(next)
+    setSaved(next)
+  }, [user])
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
   const setBool = (k) => (v) => setForm((f) => ({ ...f, [k]: v }))
